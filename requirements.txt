@@ -8,3 +8,5 @@ cchardet
 aiodns
 streamlit
 redis
+bs4
+altair
