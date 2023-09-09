@@ -7,6 +7,10 @@ aiohttp
 cchardet
 aiodns
 streamlit
+<<<<<<< HEAD
 redis
 bs4
 altair
+=======
+redis
+>>>>>>> 5befae7f43958d283ab680cb2ae72728ae4593cb

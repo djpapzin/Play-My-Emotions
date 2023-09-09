@@ -40,7 +40,11 @@ def init():
         dataset_path,
         embedding_function=embeddings,
         token=os.environ["ACTIVELOOP_TOKEN"],
+<<<<<<< HEAD
         # org_id=os.environ["ACTIVELOOP_ORG_ID"],
+=======
+        org_id=os.environ["ACTIVELOOP_ORG_ID"],
+>>>>>>> 5befae7f43958d283ab680cb2ae72728ae4593cb
         read_only=True,
     )
 
@@ -68,7 +72,11 @@ st.set_page_config(initial_sidebar_state=st.session_state.sidebar_state)
 
 db, storage, chain = init()
 
+<<<<<<< HEAD
 st.title("PlayMyEmotions 🎵🏰🔮")
+=======
+st.title("FairytaleDJ 🎵🏰🔮")
+>>>>>>> 5befae7f43958d283ab680cb2ae72728ae4593cb
 st.markdown(
     """
 *<small>Made with [DeepLake](https://www.deeplake.ai/) 🚀 and [LangChain](https://python.langchain.com/en/latest/index.html) 🦜⛓️</small>*
