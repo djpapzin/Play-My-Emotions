@@ -25,8 +25,27 @@ The application follows a sequence of steps to deliver Disney songs matching the
 Clone this repo.
 
 Create a `venv`:
-
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+You will need the following `.env` file:
+```
+OPENAI_API_KEY=<OPENAI_API_KEY>
+ACTIVELOOP_TOKEN=<ACTIVELOOP_TOKEN>
+ACTIVELOOP_ORG_ID=zuppif
+UPSTASH_URL=<UPSTASH_URL>
+UPSTASH_PASSWORD=<UPSTASH_PASSWORD>
+```
+
+If you don't want to use upstash set the `USE_STORAGE=False`
+
+Then
+
+```
+streamlit run app.py
+```
+
+Then navitage to `http://192.168.1.181:8501`
