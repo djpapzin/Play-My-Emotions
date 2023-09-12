@@ -13,7 +13,7 @@ class UserInput(TypedDict):
 
 class RedisStorage:
     def __init__(self, host: str, password: str):
-        self._client = redis.Redis(host=host, port="34307", password=password, ssl=True)
+        self._client = redis.Redis(host=host, port="35043", password=password, ssl=True)
 
     def store(self, data: UserInput) -> bool:
         uid = uuid4()
