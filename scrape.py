@@ -11,9 +11,10 @@ from bs4 import BeautifulSoup
 This file scrapes disney songs + lyrics from "https://www.disneyclips.com/lyrics/"
 """
 
+# Base URL for scraping Disney lyrics
 URL = "https://www.disneyclips.com/lyrics/"
 
-
+# Function to get song names and URLs from a given movie URL
 async def get_lyrics_names_and_urls_from_movie_url(
     movie_name: str, url: str, session: aiohttp.ClientSession
 ) -> List[Tuple[str, str]]:
@@ -31,7 +32,7 @@ async def get_lyrics_names_and_urls_from_movie_url(
                 )
         return names_and_urls
 
-
+# Function to extract lyrics from a given lyric URL
 async def get_lyric_from_lyric_url(
     movie_name: str, lyric_name: str, url: str, session: aiohttp.ClientSession
 ) -> str:
@@ -51,7 +52,7 @@ async def get_lyric_from_lyric_url(
 
         return (movie_name, lyric_name, text)
 
-
+# Function to get movie names and URLs
 async def get_movie_names_and_urls(
     session: aiohttp.ClientSession,
 ) -> List[Tuple[str, str]]:
@@ -66,7 +67,7 @@ async def get_movie_names_and_urls(
         ]
         return movie_names_and_urls
 
-
+# Main function to scrape Disney lyrics
 async def scrape_disney_lyrics():
     async with aiohttp.ClientSession() as session:
         data = await get_movie_names_and_urls(session)
@@ -93,6 +94,6 @@ async def scrape_disney_lyrics():
         with open("data/lyrics.json", "w") as f:
             json.dump(result, f)
 
-
+# Run the scraping function
 loop = asyncio.get_event_loop()
 loop.run_until_complete(scrape_disney_lyrics())

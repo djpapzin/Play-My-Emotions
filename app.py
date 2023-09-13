@@ -1,37 +1,38 @@
+# Import necessary libraries and modules
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from pathlib import Path
-
-import streamlit as st
 from dotenv import load_dotenv
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
-
-load_dotenv()
-import os
-from typing import List, Tuple
-
-import numpy as np
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
-
 from data import load_db
 from names import DATASET_ID, MODEL_ID
-from storage import RedisStorage, UserInput
+from storage import RedisStorage
 from utils import weighted_random_sample
+import os
+import numpy as np
 
+# Load environment variables
+load_dotenv()
 
-class RetrievalType:
-    FIRST_MATCH = "first-match"
-    POOL_MATCHES = "pool-matches"
+# Initialize FastAPI app
+app = FastAPI(title="Play My Emotions API", description="API for emotion-based song recommendation", version="1.0")
 
+# Define request and response models
+class EmotionInput(BaseModel):
+    emotion_text: str
 
-Matches = List[Tuple[Document, float]]
+class SongRecommendation(BaseModel):
+    emotions: str
+    recommended_songs: list
+
+# Check if storage is enabled
 USE_STORAGE = os.environ.get("USE_STORAGE", "True").lower() in ("true", "t", "1")
 
-print("USE_STORAGE", USE_STORAGE)
-
-
-@st.cache_resource
+# Initialize necessary components for the app
 def init():
     embeddings = OpenAIEmbeddings(model=MODEL_ID)
     dataset_path = f"hub://{os.environ['ACTIVELOOP_ORG_ID']}/{DATASET_ID}"
@@ -40,11 +41,6 @@ def init():
         dataset_path,
         embedding_function=embeddings,
         token=os.environ["ACTIVELOOP_TOKEN"],
-<<<<<<< HEAD
-        # org_id=os.environ["ACTIVELOOP_ORG_ID"],
-=======
-        org_id=os.environ["ACTIVELOOP_ORG_ID"],
->>>>>>> 5befae7f43958d283ab680cb2ae72728ae4593cb
         read_only=True,
     )
 
@@ -57,134 +53,47 @@ def init():
     )
 
     llm = ChatOpenAI(temperature=0.3)
-
     chain = LLMChain(llm=llm, prompt=prompt)
 
     return db, storage, chain
 
-
-# Don't show the setting sidebar
-if "sidebar_state" not in st.session_state:
-    st.session_state.sidebar_state = "collapsed"
-
-st.set_page_config(initial_sidebar_state=st.session_state.sidebar_state)
-
-
 db, storage, chain = init()
 
-<<<<<<< HEAD
-st.title("PlayMyEmotions 🎵🏰🔮")
-=======
-st.title("FairytaleDJ 🎵🏰🔮")
->>>>>>> 5befae7f43958d283ab680cb2ae72728ae4593cb
-st.markdown(
-    """
-*<small>Made with [DeepLake](https://www.deeplake.ai/) 🚀 and [LangChain](https://python.langchain.com/en/latest/index.html) 🦜⛓️</small>*
+# Define API endpoint for song recommendation
+@app.post("/recommend", response_model=SongRecommendation)
+async def recommend_song(emotion: EmotionInput):
+    user_input = emotion.emotion_text
+    if not user_input:
+        raise HTTPException(status_code=400, detail="Emotion input is required")
 
-💫 Unleash the magic within you with our enchanting app, turning your sentiments into a Disney soundtrack! 🌈 Just express your emotions, and embark on a whimsical journey as we tailor a Disney melody to match your mood. 👑💖""",
-    unsafe_allow_html=True,
-)
-how_it_works = st.expander(label="How it works")
+    docs, emotions = get_song(user_input, k=20)  # Assuming max_number_of_songs is 20 for now
+    recommended_songs = [doc.metadata["name"] for doc in docs]
 
-text_input = st.text_input(
-    label="How are you feeling today?",
-    placeholder="I am ready to rock and rool!",
-)
+    return {"emotions": emotions, "recommended_songs": recommended_songs}
 
-run_btn = st.button("Make me sing! 🎶")
-with how_it_works:
-    st.markdown(
-        """
-The application follows a sequence of steps to deliver Disney songs matching the user's emotions:
-- **User Input**: The application starts by collecting user's emotional state through a text input.
-- **Emotion Encoding**: The user-provided emotions are then fed to a Language Model (LLM). The LLM interprets and encodes these emotions.
-- **Similarity Search**: These encoded emotions are utilized to perform a similarity search within our [vector database](https://www.deeplake.ai/). This database houses Disney songs, each represented as emotional embeddings.
-- **Song Selection**: From the pool of top matching songs, the application randomly selects one. The selection is weighted, giving preference to songs with higher similarity scores.
-- **Song Retrieval**: The selected song's embedded player is displayed on the webpage for the user. Additionally, the LLM interpreted emotional state associated with the chosen song is displayed.
-"""
+# Helper function to get song based on user input
+def get_song(user_input: str, k: int = 20):
+    emotions = chain.run(user_input=user_input)
+    matches = db.similarity_search_with_score(emotions, distance_metric="cos", k=k)
+    docs, scores = zip(
+        *normalize_scores_by_sum(filter_scores(matches, 0.8))  # Assuming filter_threshold is 0.8 for now
     )
+    choosen_docs = weighted_random_sample(
+        np.array(docs), np.array(scores), n=2  # Assuming number_of_displayed_songs is 2 for now
+    ).tolist()
+    return choosen_docs, emotions
 
-
-placeholder_emotions = st.empty()
-placeholder = st.empty()
-
-
-with st.sidebar:
-    st.text("App settings")
-    filter_threshold = st.slider(
-        "Threshold used to filter out low scoring songs",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.8,
-    )
-    max_number_of_songs = st.slider(
-        "Max number of songs we will retrieve from the db",
-        min_value=5,
-        max_value=50,
-        value=20,
-        step=1,
-    )
-    number_of_displayed_songs = st.slider(
-        "Number of displayed songs", min_value=1, max_value=4, value=2, step=1
-    )
-
-
-def filter_scores(matches: Matches, th: float = 0.8) -> Matches:
+# Helper function to filter scores
+def filter_scores(matches, th: float = 0.8):
     return [(doc, score) for (doc, score) in matches if score > th]
 
-
-def normalize_scores_by_sum(matches: Matches) -> Matches:
+# Helper function to normalize scores
+def normalize_scores_by_sum(matches):
     scores = [score for _, score in matches]
     tot = sum(scores)
     return [(doc, (score / tot)) for doc, score in matches]
 
-
-def get_song(user_input: str, k: int = 20):
-    emotions = chain.run(user_input=user_input)
-    matches = db.similarity_search_with_score(emotions, distance_metric="cos", k=k)
-    # [print(doc.metadata['name'], score) for doc, score in matches]
-    docs, scores = zip(
-        *normalize_scores_by_sum(filter_scores(matches, filter_threshold))
-    )
-    choosen_docs = weighted_random_sample(
-        np.array(docs), np.array(scores), n=number_of_displayed_songs
-    ).tolist()
-    return choosen_docs, emotions
-
-
-def set_song(user_input):
-    if user_input == "":
-        return
-    # take first 120 chars
-    user_input = user_input[:120]
-    docs, emotions = get_song(user_input, k=max_number_of_songs)
-    print(docs)
-    songs = []
-    with placeholder_emotions:
-        st.markdown("Your emotions: `" + emotions + "`")
-    with placeholder:
-        iframes_html = ""
-        for doc in docs:
-            name = doc.metadata["name"]
-            print(f"song = {name}")
-            songs.append(name)
-            embed_url = doc.metadata["embed_url"]
-            iframes_html += (
-                f'<iframe src="{embed_url}" style="border:0;height:100px"> </iframe>'
-            )
-
-        st.markdown(
-            f"<div style='display:flex;flex-direction:column'>{iframes_html}</div>",
-            unsafe_allow_html=True,
-        )
-
-        if USE_STORAGE:
-            success_storage = storage.store(
-                UserInput(text=user_input, emotions=emotions, songs=songs)
-            )
-            if not success_storage:
-                print("[ERROR] was not able to store user_input")
-
-
-if run_btn:
-    set_song(text_input)
+# Run the app using uvicorn when the script is executed directly
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

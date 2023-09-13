@@ -1,6 +1,6 @@
 import numpy as np
 
-
+# Function to perform weighted random sampling without replacement
 def weighted_random_sample(items: np.array, weights: np.array, n: int) -> np.array:
     """
     Does np.random.choice but ensuring we don't have duplicates in the final result
