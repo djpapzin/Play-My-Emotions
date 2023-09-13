@@ -14,6 +14,7 @@ from storage import RedisStorage
 from utils import weighted_random_sample
 import os
 import numpy as np
+from typing import List, Dict
 
 # Load environment variables
 load_dotenv()
@@ -27,7 +28,7 @@ class EmotionInput(BaseModel):
 
 class SongRecommendation(BaseModel):
     emotions: str
-    recommended_songs: list
+    recommended_songs: List[Dict[str, str]]
 
 # Check if storage is enabled
 USE_STORAGE = os.environ.get("USE_STORAGE", "True").lower() in ("true", "t", "1")
@@ -67,7 +68,9 @@ async def recommend_song(emotion: EmotionInput):
         raise HTTPException(status_code=400, detail="Emotion input is required")
 
     docs, emotions = get_song(user_input, k=20)  # Assuming max_number_of_songs is 20 for now
-    recommended_songs = [doc.metadata["name"] for doc in docs]
+
+    # Modified to include song name and embed_url
+    recommended_songs = [{"name": doc.metadata["name"], "embed_url": doc.metadata["embed_url"]} for doc in docs]
 
     return {"emotions": emotions, "recommended_songs": recommended_songs}
 
