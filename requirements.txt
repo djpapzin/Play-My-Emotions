@@ -10,3 +10,4 @@ streamlit
 redis
 bs4
 altair
+uvicorn
