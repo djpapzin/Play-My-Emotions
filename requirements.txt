@@ -11,3 +11,4 @@ redis
 bs4
 altair
 uvicorn
+fastapi
